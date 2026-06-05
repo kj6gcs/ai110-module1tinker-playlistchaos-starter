@@ -78,16 +78,25 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     elif not isinstance(energy, int):
         energy = 0
 
-    # Genre is a strong signal: it overrides the energy thresholds so that,
-    # e.g., a mid-energy jazz track still lands in Chill.
+    # Genre and energy are weighed equally: each casts a vote toward Hype or
+    # Chill, and the side with more votes wins. If they disagree (one votes
+    # Hype, the other Chill) or neither has an opinion, the song is Mixed.
+    hype_votes = 0
+    chill_votes = 0
+
     if genre in HYPE_GENRES:
-        return "Hype"
-    if genre in CHILL_GENRES:
-        return "Chill"
+        hype_votes += 1
+    elif genre in CHILL_GENRES:
+        chill_votes += 1
 
     if energy >= hype_min_energy:
+        hype_votes += 1
+    elif energy <= chill_max_energy:
+        chill_votes += 1
+
+    if hype_votes > chill_votes:
         return "Hype"
-    if energy <= chill_max_energy:
+    if chill_votes > hype_votes:
         return "Chill"
     return "Mixed"
 
