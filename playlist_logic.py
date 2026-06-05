@@ -57,25 +57,37 @@ def normalize_song(raw: Song) -> Song:
     }
 
 
+# Genres that strongly imply a mood regardless of energy level.
+HYPE_GENRES = {"rock", "electronic"}
+CHILL_GENRES = {"jazz", "lofi", "ambient"}
+
+
 def classify_song(song: Song, profile: Dict[str, object]) -> str:
     """Return a mood label given a song and user profile."""
     energy = song.get("energy", 0)
     genre = song.get("genre", "")
-    title = song.get("title", "")
 
     hype_min_energy = profile.get("hype_min_energy", 7)
     chill_max_energy = profile.get("chill_max_energy", 3)
-    favorite_genre = profile.get("favorite_genre", "")
 
-    hype_keywords = ["rock", "punk", "party"]
-    chill_keywords = ["lofi", "ambient", "sleep"]
+    if isinstance(energy, str):
+        try:
+            energy = int(energy)
+        except ValueError:
+            energy = 0
+    elif not isinstance(energy, int):
+        energy = 0
 
-    is_hype_keyword = any(k in genre for k in hype_keywords)
-    is_chill_keyword = any(k in title for k in chill_keywords)
-
-    if genre == favorite_genre or energy >= hype_min_energy or is_hype_keyword:
+    # Genre is a strong signal: it overrides the energy thresholds so that,
+    # e.g., a mid-energy jazz track still lands in Chill.
+    if genre in HYPE_GENRES:
         return "Hype"
-    if energy <= chill_max_energy or is_chill_keyword:
+    if genre in CHILL_GENRES:
+        return "Chill"
+
+    if energy >= hype_min_energy:
+        return "Hype"
+    if energy <= chill_max_energy:
         return "Chill"
     return "Mixed"
 
